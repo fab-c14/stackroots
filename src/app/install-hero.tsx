@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const COMMAND = "npx stackroots check zod recompose";
+const COMMAND = "npx @fab-c14/stackroots check zod recompose";
 
 export function InstallHero() {
   const [copied, setCopied] = useState(false);
@@ -29,10 +29,10 @@ export function InstallHero() {
       <details className="command-more">
         <summary>All commands</summary>
         <pre>
-          <code>{`npx stackroots report
-npx stackroots check zod
-npx stackroots check zod recompose
-npx stackroots check recompose@0.30.0`}</code>
+          <code>{`npx @fab-c14/stackroots report
+npx @fab-c14/stackroots check zod
+npx @fab-c14/stackroots check zod recompose
+npx @fab-c14/stackroots check recompose@0.30.0`}</code>
         </pre>
         <p>
           If 18.10.0 would break this project, the check names a published release that fits and prints npm install

@@ -6,7 +6,7 @@ Author: [fab-c14](https://github.com/fab-c14)
 
 Live site: [stackroots-three.vercel.app](https://stackroots-three.vercel.app)
 
-Command: `npx stackroots check <package>`
+Command: `npx @fab-c14/stackroots check <package>`
 
 Stackroots reads a project's `package.json` and lockfile, then says whether a package you are about to install fits the roots already there. The command prints the finding and the `npm install` line to use. The website runs the same check. Gemma 4 writes a fix only after a check finds a problem, or when you press the button on a selected package. Gemma does not run in the command, and it does not run on page load.
 
@@ -30,10 +30,10 @@ Gemma 4 is `gemma-4-31b-it` through the Gemini API. The deterministic check does
 Node 22.18 or newer. From the project you want to check:
 
 ```bash
-npx stackroots report
-npx stackroots check zod
-npx stackroots check zod recompose
-npx stackroots check recompose@0.30.0
+npx @fab-c14/stackroots report
+npx @fab-c14/stackroots check zod
+npx @fab-c14/stackroots check zod recompose
+npx @fab-c14/stackroots check recompose@0.30.0
 ```
 
 `npx` installs the package from the public npm registry. The command walks up from the current folder until it finds a manifest. It reads `package.json`, `package-lock.json`, `pnpm-lock.yaml`, and `yarn.lock`. A Yarn lockfile does not name the direct roots by itself, so it asks for `package.json`.
@@ -91,7 +91,7 @@ typescript              dev      ^5      5.9.3     0
 yaml                    runtime  ^2.8.0  2.9.1     0
 ```
 
-`npx stackroots check recompose` against this repository exits 1:
+`npx @fab-c14/stackroots check recompose` against this repository exits 1:
 
 ```text
 recompose 0.30.0

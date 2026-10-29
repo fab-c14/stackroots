@@ -1,5 +1,8 @@
 {
-  "name": "stackroots",
+  "name": "@fab-c14/stackroots",
+  "publishConfig": {
+    "access": "public"
+  },
   "version": "0.1.0",
   "description": "Check whether a package fits a project before you install it.",
   "homepage": "https://stackroots-three.vercel.app",

@@ -19,9 +19,9 @@ async function main() {
   }
   if (command !== "check" || rawNames.length === 0) {
     console.error("Usage:");
-    console.error("  npx stackroots report");
-    console.error("  npx stackroots check <package> [more packages]");
-    console.error("  npx stackroots check <package>@<version>");
+    console.error("  npx @fab-c14/stackroots report");
+    console.error("  npx @fab-c14/stackroots check <package> [more packages]");
+    console.error("  npx @fab-c14/stackroots check <package>@<version>");
     process.exit(1);
   }
   const requested = readPackageNames(rawNames.join(" "));
