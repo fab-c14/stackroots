@@ -1,0 +1,32 @@
+{
+  "name": "stackroots",
+  "version": "0.1.0",
+  "private": true,
+  "bin": {
+    "stackroots": "./bin/stackroots.js"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/parse-manifest.test.ts tests/inspect-graph.test.ts tests/epitaph.test.ts tests/github-scan.test.ts tests/compatibility.test.ts tests/findings.test.ts tests/paint.test.ts"
+  },
+  "dependencies": {
+    "next": "16.4.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "semver": "^7.8.5",
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.3",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
