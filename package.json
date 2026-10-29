@@ -3,7 +3,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Check whether a package fits a project before you install it.",
   "homepage": "https://stackroots-three.vercel.app",
   "author": "fab-c14",
@@ -33,6 +33,7 @@
     "test": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/parse-manifest.test.ts tests/inspect-graph.test.ts tests/epitaph.test.ts tests/github-scan.test.ts tests/compatibility.test.ts tests/findings.test.ts tests/paint.test.ts"
   },
   "dependencies": {
+    "@fab-c14/stackroots": "^0.1.0",
     "semver": "^7.8.5",
     "yaml": "^2.8.0"
   },
