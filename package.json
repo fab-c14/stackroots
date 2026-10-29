@@ -3,7 +3,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Check whether a package fits a project before you install it.",
   "homepage": "https://stackroots-three.vercel.app",
   "author": "fab-c14",
@@ -19,8 +19,7 @@
   },
   "files": [
     "bin",
-    "src/cli.ts",
-    "src/lib"
+    "dist/cli.js"
   ],
   "engines": {
     "node": ">=22.18.0"
@@ -30,19 +29,19 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/parse-manifest.test.ts tests/inspect-graph.test.ts tests/epitaph.test.ts tests/github-scan.test.ts tests/compatibility.test.ts tests/findings.test.ts tests/paint.test.ts"
-  },
-  "dependencies": {
-    "@fab-c14/stackroots": "^0.1.0",
-    "semver": "^7.8.5",
-    "yaml": "^2.8.0"
+    "test": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/parse-manifest.test.ts tests/inspect-graph.test.ts tests/epitaph.test.ts tests/github-scan.test.ts tests/compatibility.test.ts tests/findings.test.ts tests/paint.test.ts",
+    "build:cli": "esbuild src/cli.ts --bundle --platform=node --format=cjs --outfile=dist/cli.js",
+    "prepublishOnly": "npm run build:cli"
   },
   "devDependencies": {
+    "semver": "^7.8.5",
+    "yaml": "^2.8.0",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/semver": "^7.8.0",
+    "esbuild": "^0.28.2",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "next": "16.4.3",

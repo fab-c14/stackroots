@@ -134,4 +134,7 @@ function findProject(start: string): string | null {
   }
 }
 
-await main();
+main().catch((error: unknown) => {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+});
