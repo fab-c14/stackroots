@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       code: "missing-key",
       model: GEMMA_MODEL,
       facts,
-      message: "Add GEMINI_API_KEY to .env.local so Gemma 4 can write this note.",
+      message: "Set GEMINI_API_KEY so Gemma 4 can write this note.",
     });
   }
 

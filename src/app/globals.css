@@ -645,6 +645,43 @@ textarea {
   color: var(--muted);
 }
 
+.open-work { margin: 0 0 16px; }
+.open-work h2, .work-list h3 {
+  margin: 0 0 8px;
+  font-family: var(--font-display), "Bricolage Grotesque", sans-serif;
+  font-size: 1.05rem;
+  font-weight: 620;
+  letter-spacing: -0.03em;
+}
+.open-work p, .work-list p { margin: 0; color: var(--muted); line-height: 1.45; }
+.open-work ul, .work-list ul { list-style: none; margin: 0; padding: 0; }
+.open-work li, .work-list li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 12px;
+  align-items: baseline;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.open-work button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-align: left;
+}
+.open-work a, .work-list a { color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
+.work-list { margin-top: 14px; }
+.work-list li span {
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.75rem;
+}
+
 .scan-roots { white-space: nowrap; }
 
 .mark {

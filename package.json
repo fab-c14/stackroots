@@ -1,9 +1,26 @@
 {
   "name": "stackroots",
   "version": "0.1.0",
-  "private": true,
+  "description": "Check whether a package fits a project before you install it.",
+  "homepage": "https://stackroots-three.vercel.app",
+  "author": "fab-c14",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fab-c14/stackroots.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fab-c14/stackroots/issues"
+  },
   "bin": {
-    "stackroots": "./bin/stackroots.js"
+    "stackroots": "bin/stackroots.js"
+  },
+  "files": [
+    "bin",
+    "src/cli.ts",
+    "src/lib"
+  ],
+  "engines": {
+    "node": ">=22.18.0"
   },
   "scripts": {
     "dev": "next dev",
@@ -13,9 +30,6 @@
     "test": "node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/parse-manifest.test.ts tests/inspect-graph.test.ts tests/epitaph.test.ts tests/github-scan.test.ts tests/compatibility.test.ts tests/findings.test.ts tests/paint.test.ts"
   },
   "dependencies": {
-    "next": "16.4.3",
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
     "semver": "^7.8.5",
     "yaml": "^2.8.0"
   },
@@ -24,8 +38,12 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/semver": "^7.8.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "next": "16.4.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

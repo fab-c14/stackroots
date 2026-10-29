@@ -22,7 +22,7 @@ const mono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "Stackroots",
-  description: "Check packages against a project before installing them. The command is npx stackroots check.",
+  description: "Check a package against a project before you install it. Try a repo at stackroots-three.vercel.app, or run npx stackroots check.",
   icons: { icon: "/brand/mark.svg" },
 };
 

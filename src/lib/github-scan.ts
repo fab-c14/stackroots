@@ -75,7 +75,7 @@ export function manifestNamesIn(listing: unknown): string[] {
   return MANIFESTS.filter((name) => present.has(name));
 }
 
-export function readIssues(payload: unknown): RepoIssue[] {
+export function readIssues(payload: unknown, limit = 6): RepoIssue[] {
   if (!Array.isArray(payload)) return [];
   const issues: RepoIssue[] = [];
   for (const item of payload) {
@@ -87,9 +87,78 @@ export function readIssues(payload: unknown): RepoIssue[] {
       url: record.html_url,
       comments: typeof record.comments === "number" ? record.comments : 0,
     });
-    if (issues.length === 6) break;
+    if (issues.length === limit) break;
   }
   return issues;
+}
+
+export type PackageWork = {
+  name: string;
+  repo: string | null;
+  url: string | null;
+  issues: RepoIssue[];
+  note: string | null;
+};
+
+export function readNpmRepository(value: unknown): GitHubTarget | null {
+  const raw = repositoryUrl(value);
+  if (!raw) return null;
+  const ssh = raw.match(/^git@github\.com:([^/\s]+)\/([^/\s]+?)(?:\.git)?$/);
+  if (ssh?.[1] && ssh[2] && isSlug(ssh[1]) && isSlug(ssh[2])) return { owner: ssh[1], repo: ssh[2], ref: null };
+  const prefixed = raw.match(/^github:([^/\s]+)\/([^/\s]+?)(?:\.git)?$/);
+  if (prefixed?.[1] && prefixed[2] && isSlug(prefixed[1]) && isSlug(prefixed[2])) {
+    return { owner: prefixed[1], repo: prefixed[2], ref: null };
+  }
+  return parseGitHubTarget(raw.replace(/^git\+/, ""));
+}
+
+export function matchIssuesToRoots(issues: RepoIssue[], roots: string[]): { name: string; issues: RepoIssue[] }[] {
+  return roots.flatMap((name) => {
+    const hits = issues.filter((issue) => mentionsPackage(issue.title, name));
+    return hits.length > 0 ? [{ name, issues: hits }] : [];
+  });
+}
+
+export function mergePackageWork(roots: string[], upstream: PackageWork[], repoIssues: RepoIssue[]): PackageWork[] {
+  const allowed = new Set(roots);
+  const byName = new Map(upstream.filter((item) => allowed.has(item.name)).map((item) => [item.name, { ...item, issues: [...item.issues] }]));
+  for (const hit of matchIssuesToRoots(repoIssues, roots)) {
+    const current = byName.get(hit.name) ?? { name: hit.name, repo: null, url: null, issues: [], note: null };
+    const seen = new Set(current.issues.map((issue) => issue.url));
+    byName.set(hit.name, { ...current, issues: [...current.issues, ...hit.issues.filter((issue) => !seen.has(issue.url))] });
+  }
+  return roots.flatMap((name) => {
+    const item = byName.get(name);
+    return item ? [item] : [];
+  });
+}
+
+export async function loadPackageWork(name: string, token?: string): Promise<PackageWork & { limited: boolean }> {
+  try {
+    const response = await fetch(`https://registry.npmjs.org/${encodeURIComponent(name)}/latest`, { cache: "no-store" });
+    if (response.status === 404) {
+      return { name, repo: null, url: null, issues: [], note: `${name} is not on the npm registry.`, limited: false };
+    }
+    if (!response.ok) {
+      return { name, repo: null, url: null, issues: [], note: "The npm registry did not return that package.", limited: false };
+    }
+    const doc = asRecord(await response.json());
+    const target = readNpmRepository(doc?.repository);
+    if (!target) {
+      return { name, repo: null, url: null, issues: [], note: "The latest release has no public GitHub repository.", limited: false };
+    }
+    const found = await fetchHelpWanted(target, githubHeaders(token), 3);
+    return {
+      name,
+      repo: `${target.owner}/${target.repo}`,
+      url: `https://github.com/${target.owner}/${target.repo}`,
+      issues: found.issues,
+      note: found.limited ? "GitHub rate-limited this lookup." : found.issues.length === 0 ? "No open help-wanted issues." : null,
+      limited: found.limited,
+    };
+  } catch {
+    return { name, repo: null, url: null, issues: [], note: "The lookup could not be reached.", limited: false };
+  }
 }
 
 export function readCommitShare(payload: unknown): CommitShare | null {
@@ -194,12 +263,22 @@ async function readManifestFiles(target: GitHubTarget, ref: string, names: strin
 }
 
 async function readHelpWanted(target: GitHubTarget, headers: HeadersInit): Promise<RepoIssue[]> {
+  const found = await fetchHelpWanted(target, headers, 6);
+  return found.issues;
+}
+
+async function fetchHelpWanted(
+  target: GitHubTarget,
+  headers: HeadersInit,
+  limit: number,
+): Promise<{ issues: RepoIssue[]; limited: boolean }> {
   const response = await fetch(
-    `https://api.github.com/repos/${target.owner}/${target.repo}/issues?state=open&labels=${encodeURIComponent("help wanted")}&per_page=6`,
+    `https://api.github.com/repos/${target.owner}/${target.repo}/issues?state=open&labels=${encodeURIComponent("help wanted")}&per_page=${limit}`,
     { headers, cache: "no-store" },
   );
-  if (!response.ok) return [];
-  return readIssues(await response.json());
+  if (response.status === 403 || response.status === 429) return { issues: [], limited: true };
+  if (!response.ok) return { issues: [], limited: false };
+  return { issues: readIssues(await response.json(), limit), limited: false };
 }
 
 async function readShare(target: GitHubTarget, headers: HeadersInit): Promise<CommitShare | null> {
@@ -218,6 +297,17 @@ function githubHeaders(token?: string): HeadersInit {
     "x-github-api-version": "2022-11-28",
     ...(token ? { authorization: `Bearer ${token}` } : {}),
   };
+}
+
+function repositoryUrl(value: unknown): string | null {
+  if (typeof value === "string") return value;
+  const record = asRecord(value);
+  return record && typeof record.url === "string" ? record.url : null;
+}
+
+function mentionsPackage(title: string, name: string): boolean {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^A-Za-z0-9_.@/-])${escaped}([^A-Za-z0-9_.@/-]|$)`, "i").test(title);
 }
 
 function isSlug(value: string): boolean {

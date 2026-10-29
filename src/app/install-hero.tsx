@@ -19,7 +19,7 @@ export function InstallHero() {
 
   return (
     <section className="command-strip" id="command">
-      <p className="lede">From the stackroots folder, after npm install.</p>
+      <p className="lede">From any project. Node 22.18 or newer.</p>
       <div className="command">
         <code>{COMMAND}</code>
         <button type="button" className="primary" onClick={copy}>

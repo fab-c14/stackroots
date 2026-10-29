@@ -5,7 +5,7 @@ import { EpitaphNote } from "./epitaph-note";
 import { InstallCheck } from "./install-check";
 import { InstallHero } from "./install-hero";
 import { localFinding, projectReport, worse, type Finding, type FindingLevel } from "@/lib/findings";
-import type { RepoScan } from "@/lib/github-scan";
+import { mergePackageWork, type PackageWork, type RepoScan } from "@/lib/github-scan";
 import { inspectGraph, type RangeClass, type RootView } from "@/lib/inspect-graph";
 import { parseManifests, type DepKind, type ManifestGraph, type ParseResult } from "@/lib/parse-manifest";
 import { SAMPLE_FILES, SAMPLE_PACKAGE_JSON } from "@/lib/sample-manifest";
@@ -63,6 +63,9 @@ export function IngestDesk() {
   const [auditing, setAuditing] = useState(false);
   const [auditError, setAuditError] = useState<string | null>(null);
   const [problemsOnly, setProblemsOnly] = useState(false);
+  const [work, setWork] = useState<PackageWork[] | null>(null);
+  const [working, setWorking] = useState(false);
+  const [workError, setWorkError] = useState<string | null>(null);
   const [pane, setPane] = useState<"scan" | "stage">("stage");
 
   useEffect(() => {
@@ -105,6 +108,8 @@ export function IngestDesk() {
     setScan(null);
     setAudit(null);
     setAuditError(null);
+    setWork(null);
+    setWorkError(null);
     setProblemsOnly(false);
   }
 
@@ -152,9 +157,15 @@ export function IngestDesk() {
       const payload = (await response.json()) as
         | { ok: true; scan: RepoScan }
         | { ok: false; message?: string };
-      if (!payload.ok || !payload.scan) {
+      if (!payload.ok) {
         setScan(null);
         setScanError(payload.message ?? "That repository could not be scanned.");
+        setPane("scan");
+        return;
+      }
+      if (!payload.scan) {
+        setScan(null);
+        setScanError("That repository could not be scanned.");
         setPane("scan");
         return;
       }
@@ -200,6 +211,34 @@ export function IngestDesk() {
     }
   }
 
+  async function onWork() {
+    if (!graph) return;
+    setWorking(true);
+    setWorkError(null);
+    try {
+      const response = await fetch("/api/work", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ names: graph.direct.map((dep) => dep.name) }),
+      });
+      const payload = (await response.json()) as
+        | { ok: true; packages: PackageWork[]; skipped: number; limited: boolean }
+        | { ok: false; message?: string };
+      if (!payload.ok) {
+        setWorkError(payload.message ?? "Open work could not be matched.");
+        return;
+      }
+      setWork(payload.packages);
+      setPane("stage");
+      if (payload.limited) setWorkError("GitHub rate-limited part of this lookup. Add GITHUB_TOKEN to .env.local, or try again shortly.");
+      else if (payload.skipped > 0) setWorkError(`Matched the first 12 roots. ${payload.skipped} were left out.`);
+    } catch {
+      setWorkError("Open work could not be reached.");
+    } finally {
+      setWorking(false);
+    }
+  }
+
   function clear() {
     setPaste("");
     setNames([]);
@@ -208,11 +247,19 @@ export function IngestDesk() {
     setScanError(null);
     setAudit(null);
     setAuditError(null);
+    setWork(null);
+    setWorkError(null);
     setProblemsOnly(false);
     setResult({ ok: false, issue: { code: "empty", message: "Drop a manifest to begin." } });
     setQuery("");
     setKinds([]);
   }
+
+  const workRows = useMemo(
+    () => (view ? mergePackageWork(view.roots.map((root) => root.name), work ?? [], scan?.issues ?? []) : []),
+    [view, work, scan],
+  );
+  const openRows = workRows.filter((item) => item.issues.length > 0);
 
   const rangeMix = view
     ? (Object.entries(view.summary.byRange) as Array<[RangeClass, number]>)
@@ -310,7 +357,7 @@ export function IngestDesk() {
       {scan ? <RepoPanel scan={scan} /> : null}
 
       {sample && graph ? (
-        <p className="banner">This is the sample project. Scan a repo, or drop your own manifest, to replace it.</p>
+        <p className="banner">Sample project field-notes is loaded. Type recompose and press Check, or scan a public GitHub repo.</p>
       ) : null}
       {names.length > 0 && graph ? <p className="plate-note">Read {names.join(", ")}.</p> : null}
 
@@ -424,6 +471,9 @@ export function IngestDesk() {
             <button type="button" className="text-button scan-roots" onClick={onAudit} disabled={auditing}>
               {auditing ? "Scanning roots" : "Scan roots"}
             </button>
+            <button type="button" className="text-button scan-roots" onClick={onWork} disabled={working}>
+              {working ? "Matching" : "Open work"}
+            </button>
           </div>
           {auditError ? (
             <p className={auditError.startsWith("Scanned") ? "notice" : "issue"} role="alert">
@@ -431,6 +481,32 @@ export function IngestDesk() {
             </p>
           ) : null}
           {audit ? <p className="audit-line">{auditLine(view.roots, audit)}</p> : null}
+          {workError ? (
+            <p className={workError.startsWith("Matched") ? "notice" : "issue"} role="alert">
+              {workError}
+            </p>
+          ) : null}
+          {work || openRows.length > 0 ? (
+            <section className="open-work">
+              <h2>Open work on roots you already use</h2>
+              {openRows.length > 0 ? (
+                <ul>
+                  {openRows.map((item) => (
+                    <li key={item.name}>
+                      <button type="button" onClick={() => setSelected(item.name)}>
+                        {item.name}
+                      </button>
+                      <a href={item.issues.length === 1 ? item.issues[0]?.url : (item.url ?? item.issues[0]?.url)}>
+                        {item.issues.length === 1 ? item.issues[0]?.title : `${item.issues.length} help-wanted`}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>None of these roots have an open help-wanted issue.</p>
+              )}
+            </section>
+          ) : null}
 
             <div className="split">
               <div className="log">
@@ -455,7 +531,7 @@ export function IngestDesk() {
                         <span className="mark" data-kind={root.kind} aria-hidden="true" />
                         <span className="name">
                           {root.name}
-                          <Flags root={root} note={audit?.[root.name]} />
+                          <Flags root={root} note={audit?.[root.name]} openWork={(workRows.find((item) => item.name === root.name)?.issues.length ?? 0) > 0} />
                         </span>
                         <span className="meta kind">{KIND_LABEL[root.kind]}</span>
                         <span className="meta asked">{root.requested ?? "none"}</span>
@@ -466,7 +542,12 @@ export function IngestDesk() {
                 </ul>
               </div>
               {shown ? (
-                <Detail root={shown} pullsKnown={view.summary.pullsKnown} note={audit?.[shown.name]} />
+                <Detail
+                  root={shown}
+                  pullsKnown={view.summary.pullsKnown}
+                  note={audit?.[shown.name]}
+                  work={workRows.find((item) => item.name === shown.name) ?? null}
+                />
               ) : (
                 <p className="notice">Nothing selected.</p>
               )}
@@ -616,10 +697,10 @@ function Stat({
   );
 }
 
-function Flags({ root, note }: { root: RootView; note?: AuditNote }) {
+function Flags({ root, note, openWork }: { root: RootView; note?: AuditNote; openWork?: boolean }) {
   const local = localFinding(root);
   const labels = [local.label, note?.label ?? ""].filter((label) => label !== "" && label !== "Current");
-  if (labels.length === 0) return null;
+  if (labels.length === 0 && !openWork) return null;
   return (
     <span className="flags">
       {labels.map((label) => (
@@ -627,11 +708,22 @@ function Flags({ root, note }: { root: RootView; note?: AuditNote }) {
           {label}
         </span>
       ))}
+      {openWork ? <span className="flag">Open</span> : null}
     </span>
   );
 }
 
-function Detail({ root, pullsKnown, note }: { root: RootView; pullsKnown: boolean; note?: AuditNote }) {
+function Detail({
+  root,
+  pullsKnown,
+  note,
+  work,
+}: {
+  root: RootView;
+  pullsKnown: boolean;
+  note?: AuditNote;
+  work: PackageWork | null;
+}) {
   const local = localFinding(root);
   const messages = [local.message, note?.message ?? ""].filter(Boolean);
   const fixes = [local.solution, note?.solution ?? ""].filter(Boolean);
@@ -673,6 +765,24 @@ function Detail({ root, pullsKnown, note }: { root: RootView; pullsKnown: boolea
           <dd>{root.resolved ?? "none"}</dd>
         </div>
       </dl>
+      {work ? (
+        <div className="work-list">
+          <h3>Help wanted</h3>
+          {work.url && work.repo ? <p><a href={work.url}>{work.repo}</a></p> : null}
+          {work.issues.length > 0 ? (
+            <ul>
+              {work.issues.map((issue) => (
+                <li key={issue.url}>
+                  <a href={issue.url}>{issue.title}</a>
+                  <span>{issue.comments}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>{work.note}</p>
+          )}
+        </div>
+      ) : null}
       <EpitaphNote root={root} />
       <h3>{pullsKnown ? `${root.pulls.length} pulled` : "Pulls hidden"}</h3>
       {pullsKnown ? (
